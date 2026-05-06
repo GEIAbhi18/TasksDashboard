@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 260px;
+  --analytics-width: 300px;
+  --topbar-height: 60px;
+  
+  --surface: #fafafa;
+  --surface-1: #f4f5f7;
+  --surface-2: #eaecf0;
+  --surface-3: #d0d5dd;
+  
+  --ink: #0f172a;
+  --ink-soft: #334155;
+  --ink-muted: #64748b;
+  --ink-faint: #94a3b8;
+
+  --card-bg: #ffffff;
+}
+
+.dark {
+  --surface: #0f172a;
+  --surface-1: #1e293b;
+  --surface-2: #334155;
+  --surface-3: #475569;
+  
+  --ink: #f8fafc;
+  --ink-soft: #e2e8f0;
+  --ink-muted: #cbd5e1;
+  --ink-faint: #94a3b8;
+
+  --card-bg: #1e293b;
+}
+
+@layer utilities {
+  .dark .bg-white {
+    background-color: var(--card-bg) !important;
+  }
+}
+
+body {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid #28a6fa;
+  outline-offset: 2px;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Card glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Dot pattern background */
+.dot-pattern {
+  background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Selection */
+::selection {
+  background: #b9e8ff;
+  color: #0e2f55;
+}
+
+/* Status indicator pulse */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+.status-pulse {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* Drag over highlight */
+.drag-over {
+  background: #eef9ff !important;
+  border-color: #28a6fa !important;
+  box-shadow: 0 0 0 2px rgba(40,166,250,0.15) !important;
+}
