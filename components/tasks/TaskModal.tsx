@@ -76,6 +76,21 @@ export function TaskModal({ task, projectName, onClose, onUpdateStatus, isManage
               {saving && <Loader2 className="w-3.5 h-3.5 text-ink-faint animate-spin" />}
             </div>
 
+            {/* Blocker alert */}
+            {task.is_blocked && (
+              <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0 mt-0.5 animate-pulse" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-red-600 uppercase tracking-wide mb-0.5">🔴 Red Marker Blocker</p>
+                  {task.blocker_reason ? (
+                    <p className="text-xs text-red-500 leading-relaxed">{task.blocker_reason}</p>
+                  ) : (
+                    <p className="text-xs text-red-400">This task is currently blocked.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             {task.description && (
               <div>

@@ -21,7 +21,12 @@ export interface Task {
   progress?: number
   created_at: string
   due_date?: string
+  start_date?: string
   priority?: 'low' | 'medium' | 'high'
+  // Blocker fields from DB
+  is_blocked?: boolean
+  blocker_reason?: string | null
+  blockers_count?: number
 }
 
 export interface Project {

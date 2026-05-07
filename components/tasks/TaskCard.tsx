@@ -87,6 +87,17 @@ export function TaskCard({ task, projectName, onClick, isDragging, dragHandlePro
             </div>
           )}
 
+          {/* Blocker indicator */}
+          {(task.is_blocked || (task.blockers_count && task.blockers_count > 0)) && (
+            <div className="mb-3 flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-xl">
+              <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 animate-pulse" />
+              <span className="text-[11px] font-bold text-red-600 uppercase tracking-wide">🔴 Blocker</span>
+              {task.blocker_reason && (
+                <span className="text-[10px] text-red-500 truncate ml-1">– {task.blocker_reason}</span>
+              )}
+            </div>
+          )}
+
           {/* Footer */}
           <div className="flex items-center justify-between">
             <AvatarGroup names={task.assigned_users} max={3} size="xs" />

@@ -11,6 +11,34 @@ const USE_MOCK = !process.env.NEXT_PUBLIC_SUPABASE_URL ||
 // Global mock store for demo mutations
 let mockTasks = [...MOCK_TASKS]
 
+// Map Supabase DB row fields → frontend Task type
+function mapDbTaskToTask(row: Record<string, any>): Task {
+  const isBlocked = row.is_blocked === true
+  // If the DB marks it as blocked, override status to 'blocker' regardless of status field
+  const status: TaskStatus = isBlocked ? 'blocker' : (row.status ?? 'pending')
+  
+  // assigned_to in DB is a single user id string or null; assigned_users is an array of display names
+  // We keep it as a display-friendly array
+  const assignedUsers: string[] = row.assigned_to ? [row.assigned_to] : []
+
+  return {
+    id: row.id,
+    title: row.name ?? row.title ?? 'Untitled',
+    project_id: row.project_id,
+    status,
+    assigned_users: assignedUsers,
+    description: row.description ?? undefined,
+    progress: row.progress ?? 0,
+    created_at: row.created_at,
+    due_date: row.deadline ?? row.due_date ?? undefined,
+    start_date: row.planned_start_date ?? row.start_date ?? undefined,
+    priority: row.priority ?? undefined,
+    is_blocked: isBlocked,
+    blocker_reason: row.blocker_reason ?? null,
+    blockers_count: isBlocked ? 1 : 0,
+  }
+}
+
 async function fetchTasks(projectId?: string): Promise<Task[]> {
   if (USE_MOCK) {
     return projectId ? mockTasks.filter((t) => t.project_id === projectId) : mockTasks
@@ -19,7 +47,7 @@ async function fetchTasks(projectId?: string): Promise<Task[]> {
   if (projectId) q = q.eq('project_id', projectId)
   const { data, error } = await q
   if (error) throw error
-  return data || []
+  return (data || []).map(mapDbTaskToTask)
 }
 
 async function updateTaskStatus(id: string, status: TaskStatus): Promise<void> {
