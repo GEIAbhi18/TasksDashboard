@@ -12,7 +12,7 @@ const HARDCODED_USERS: AuthUserWithCreds[] = [
     id: 'user-developer',
     email: 'name@goodearthinfra',
     aliases: ['developer@goodearthinfra.com', 'name@goodearthinfra.com', 'developer@goodearthinfra', 'developer'],
-    password: 'simple',
+    password: 'Dev@Elara#2026',
     name: 'Developer',
     role: 'Developer',
     team: 'Elara Home',
@@ -23,7 +23,7 @@ const HARDCODED_USERS: AuthUserWithCreds[] = [
     id: '1e4a4d9e-ced8-48f0-afd3-494478f05131',
     email: 'kanav@goodearthinfra.com',
     aliases: ['kanav@goodearthinfra', 'kanav'],
-    password: 'simple',
+    password: 'Kanav@Elara#2026',
     name: 'Kanav',
     role: 'Director',
     team: 'Elara Home',
@@ -34,7 +34,7 @@ const HARDCODED_USERS: AuthUserWithCreds[] = [
     id: 'user-rachit',
     email: 'rachit@goodearthinfra.com',
     aliases: ['rachit@goodearthinfra', 'rachit'],
-    password: 'simple',
+    password: 'Rachit@Elara#2026',
     name: 'Rachit',
     role: 'Team Member',
     team: 'Elara Home',
@@ -46,7 +46,7 @@ const HARDCODED_USERS: AuthUserWithCreds[] = [
     id: 'user-bhirmala',
     email: 'bhirmala@goodearthinfra.com',
     aliases: ['bhirmala@goodearthinfra', 'bhirmala'],
-    password: 'simple',
+    password: 'Bhirmala@Elara#2026',
     name: 'Bhirmala',
     role: 'Team Member',
     team: 'Elara Home',
@@ -58,7 +58,7 @@ const HARDCODED_USERS: AuthUserWithCreds[] = [
     id: 'user-bhagwandass',
     email: 'bhagwandass@goodearthinfra.com',
     aliases: ['bhagwandass@goodearthinfra', 'bhagwandass', 'bhagwan dass'],
-    password: 'simple',
+    password: 'Bhagwan@Elara#2026',
     name: 'Bhagwan Dass',
     role: 'Team Member',
     team: 'Elara Home',
@@ -92,13 +92,14 @@ export const useAuthStore = create<AuthState>()(
         const found = HARDCODED_USERS.find((u) => {
           const emailMatch =
             u.email.toLowerCase() === cleanEmail ||
+            (u.name && u.name.toLowerCase() === cleanEmail) ||
             (u.aliases && u.aliases.some((a) => a.toLowerCase() === cleanEmail))
           const pwMatch = u.password === cleanPassword
           return emailMatch && pwMatch
         })
 
         if (!found) {
-          return { success: false, error: 'Invalid email or password.' }
+          return { success: false, error: 'Invalid username/email or password.' }
         }
 
         const { password: _pw, aliases: _al, ...user } = found

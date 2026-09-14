@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Task, TaskStatus } from '@/types'
 import { useTasks } from '@/hooks/useTasks'
@@ -29,7 +29,7 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban')
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
 
-  const { data: tasks = [], isLoading, statusMutation, createMutation, deleteMutation } = useTasks(selectedProjectId ?? undefined)
+  const { data: tasks = [], isLoading, statusMutation, updateMutation, createMutation, deleteMutation } = useTasks(selectedProjectId ?? undefined)
   const { data: projects = [] } = useProjects()
 
   const projectNames = Object.fromEntries(projects.map((p) => [p.id, p.name]))
@@ -37,9 +37,19 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
 
   const filteredTasks = statusFilter === 'all' ? tasks : tasks.filter((t) => t.status === statusFilter)
 
+  // Keep selectedTask in sync with latest task data (for comments, reassignment, dates)
+  const activeTask = useMemo(() => {
+    if (!selectedTask) return null
+    return tasks.find((t) => t.id === selectedTask.id) ?? selectedTask
+  }, [tasks, selectedTask])
+
   const handleUpdateStatus = async (id: string, status: TaskStatus) => {
     await statusMutation.mutateAsync({ id, status })
     toast.success(`Status updated to "${STATUS_CONFIG[status].label}"`)
+  }
+
+  const handleUpdateTask = async (id: string, updates: Partial<Task>) => {
+    await updateMutation.mutateAsync({ id, updates })
   }
 
   const handleDeleteTask = async (id: string) => {
@@ -193,12 +203,13 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
 
       {/* Task detail modal */}
       <AnimatePresence>
-        {selectedTask && (
+        {activeTask && (
           <TaskModal
-            task={selectedTask}
-            projectName={projectNames[selectedTask.project_id]}
+            task={activeTask}
+            projectName={projectNames[activeTask.project_id]}
             onClose={() => setSelectedTask(null)}
             onUpdateStatus={handleUpdateStatus}
+            onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
             isManager={user?.role === 'Manager' || user?.role === 'Director' || user?.role === 'Developer'}
           />

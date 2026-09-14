@@ -265,7 +265,7 @@ export function CreateTaskModal({
 
               <div>
                 <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-1.5">
-                  Due Date
+                  Expected Completion Date
                 </label>
                 <input
                   type="date"

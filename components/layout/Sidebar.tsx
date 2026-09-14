@@ -46,7 +46,11 @@ export function Sidebar({ selectedProjectId, onSelectProject, isOpen, onClose }:
   const handleLogout = () => {
     logout()
     toast.success('Signed out')
-    router.push('/login')
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    } else {
+      router.push('/login')
+    }
   }
 
   const navItems = [
@@ -259,13 +263,13 @@ export function Sidebar({ selectedProjectId, onSelectProject, isOpen, onClose }:
               </div>
             </div>
             <motion.button
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-ink-faint hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+              className="p-2 rounded-xl text-ink-muted hover:text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center cursor-pointer flex-shrink-0"
               title="Sign out"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4" />
             </motion.button>
           </div>
         </div>

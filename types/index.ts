@@ -13,6 +13,15 @@ export interface User {
 
 export type TaskStatus = 'pending' | 'in_progress' | 'delay' | 'blocker' | 'completed'
 
+export interface TaskComment {
+  id: string
+  user_name: string
+  user_role?: string
+  user_avatar?: string
+  content: string
+  created_at: string
+}
+
 export interface Task {
   id: string
   title: string
@@ -22,7 +31,10 @@ export interface Task {
   description?: string
   progress?: number
   created_at: string
-  due_date?: string
+  due_date?: string // Expected Completion Date
+  expected_completion_date?: string
+  actual_completion_date?: string | null
+  comments?: TaskComment[]
   start_date?: string
   priority?: 'low' | 'medium' | 'high'
   // Blocker fields from DB

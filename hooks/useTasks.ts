@@ -11,6 +11,14 @@ const USE_MOCK = !process.env.NEXT_PUBLIC_SUPABASE_URL ||
 // Global mock store for mutations
 let mockTasks = [...MOCK_TASKS]
 
+function parseComments(raw: any) {
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw) } catch { return [] }
+  }
+  return []
+}
+
 // Map Supabase DB row fields → frontend Task type
 function mapDbTaskToTask(row: Record<string, any>): Task {
   const isBlocked = row.is_blocked === true
@@ -26,6 +34,8 @@ function mapDbTaskToTask(row: Record<string, any>): Task {
   // assigned_to in DB is a single user id string or null; assigned_users is an array of display names
   const assignedUsers: string[] = row.assigned_to ? [row.assigned_to] : (row.assigned_users || [])
 
+  const actualCompletionDate = row.actual_completion_date ?? (status === 'completed' ? (row.updated_at || row.created_at) : null)
+
   return {
     id: row.id,
     title: row.name ?? row.title ?? 'Untitled',
@@ -36,6 +46,9 @@ function mapDbTaskToTask(row: Record<string, any>): Task {
     progress: row.progress ?? 0,
     created_at: row.created_at || new Date().toISOString(),
     due_date: row.deadline ?? row.due_date ?? undefined,
+    expected_completion_date: row.deadline ?? row.due_date ?? undefined,
+    actual_completion_date: actualCompletionDate,
+    comments: parseComments(row.comments),
     start_date: row.planned_start_date ?? row.start_date ?? undefined,
     priority: (row.priority || 'medium').toLowerCase() as any,
     is_blocked: isBlocked,
@@ -55,21 +68,28 @@ async function fetchTasks(projectId?: string): Promise<Task[]> {
     const { data: elaraData, error: elaraError } = await qElara
 
     if (!elaraError && elaraData) {
-      return elaraData.map((row) => ({
-        id: row.id,
-        title: row.title || row.name || 'Untitled',
-        project_id: row.project_id,
-        status: (row.status || 'pending') as TaskStatus,
-        description: row.description || undefined,
-        priority: (row.priority || 'medium').toLowerCase() as any,
-        progress: row.progress ?? 0,
-        assigned_users: row.assigned_users && row.assigned_users.length > 0 ? row.assigned_users : ['Developer'],
-        due_date: row.due_date || undefined,
-        created_at: row.created_at || new Date().toISOString(),
-        is_blocked: row.is_blocked === true,
-        blocker_reason: row.blocker_reason || null,
-        blockers_count: row.is_blocked ? 1 : 0,
-      }))
+      return elaraData.map((row) => {
+        const status = (row.status || 'pending') as TaskStatus
+        const actualCompletionDate = row.actual_completion_date ?? (status === 'completed' ? (row.updated_at || row.created_at) : null)
+        return {
+          id: row.id,
+          title: row.title || row.name || 'Untitled',
+          project_id: row.project_id,
+          status,
+          description: row.description || undefined,
+          priority: (row.priority || 'medium').toLowerCase() as any,
+          progress: row.progress ?? 0,
+          assigned_users: row.assigned_users && row.assigned_users.length > 0 ? row.assigned_users : ['Developer'],
+          due_date: row.due_date || undefined,
+          expected_completion_date: row.due_date || undefined,
+          actual_completion_date: actualCompletionDate,
+          comments: parseComments(row.comments),
+          created_at: row.created_at || new Date().toISOString(),
+          is_blocked: row.is_blocked === true,
+          blocker_reason: row.blocker_reason || null,
+          blockers_count: row.is_blocked ? 1 : 0,
+        }
+      })
     }
 
     // 2. Fallback to legacy tasks table
@@ -86,18 +106,36 @@ async function fetchTasks(projectId?: string): Promise<Task[]> {
 }
 
 async function updateTaskStatus(id: string, status: TaskStatus): Promise<void> {
-  mockTasks = mockTasks.map((t) => (t.id === id ? { ...t, status, is_blocked: status === 'blocker' } : t))
+  const actualCompletionDate = status === 'completed' ? new Date().toISOString() : null
+  mockTasks = mockTasks.map((t) =>
+    t.id === id
+      ? {
+          ...t,
+          status,
+          is_blocked: status === 'blocker',
+          actual_completion_date: actualCompletionDate,
+        }
+      : t
+  )
   if (!USE_MOCK) {
     try {
       // 1. Try elara_tasks table
+      const payload: Record<string, any> = {
+        status,
+        is_blocked: status === 'blocker',
+        actual_completion_date: actualCompletionDate,
+        updated_at: new Date().toISOString(),
+      }
       const { error: elaraErr } = await supabase
         .from('elara_tasks')
-        .update({
-          status,
-          is_blocked: status === 'blocker',
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq('id', id)
+
+      // Fallback if column actual_completion_date not yet added in Supabase
+      if (elaraErr && elaraErr.message?.includes('actual_completion_date')) {
+        delete payload.actual_completion_date
+        await supabase.from('elara_tasks').update(payload).eq('id', id)
+      }
 
       // 2. Also try legacy tasks if needed
       if (elaraErr && !id.startsWith('task-')) {
@@ -120,30 +158,59 @@ async function updateTaskStatus(id: string, status: TaskStatus): Promise<void> {
 }
 
 async function updateTask(id: string, updates: Partial<Task>): Promise<void> {
-  mockTasks = mockTasks.map((t) => (t.id === id ? { ...t, ...updates } : t))
+  const calculatedActualDate =
+    updates.status === 'completed' && updates.actual_completion_date === undefined
+      ? new Date().toISOString()
+      : updates.status && updates.status !== 'completed' && updates.actual_completion_date === undefined
+      ? null
+      : updates.actual_completion_date
+
+  const fullUpdates = {
+    ...updates,
+    ...(calculatedActualDate !== undefined ? { actual_completion_date: calculatedActualDate } : {}),
+  }
+
+  mockTasks = mockTasks.map((t) => (t.id === id ? { ...t, ...fullUpdates } : t))
   if (!USE_MOCK) {
     try {
       const payload: Record<string, any> = {
         updated_at: new Date().toISOString(),
       }
-      if (updates.title !== undefined) payload.title = updates.title
-      if (updates.description !== undefined) payload.description = updates.description
-      if (updates.status !== undefined) {
-        payload.status = updates.status
-        payload.is_blocked = updates.status === 'blocker'
+      if (fullUpdates.title !== undefined) payload.title = fullUpdates.title
+      if (fullUpdates.description !== undefined) payload.description = fullUpdates.description
+      if (fullUpdates.status !== undefined) {
+        payload.status = fullUpdates.status
+        payload.is_blocked = fullUpdates.status === 'blocker'
       }
-      if (updates.priority !== undefined) payload.priority = updates.priority
-      if (updates.progress !== undefined) payload.progress = updates.progress
-      if (updates.assigned_users !== undefined) payload.assigned_users = updates.assigned_users
-      if (updates.due_date !== undefined) payload.due_date = updates.due_date
-      if (updates.is_blocked !== undefined) payload.is_blocked = updates.is_blocked
-      if (updates.blocker_reason !== undefined) payload.blocker_reason = updates.blocker_reason
-      if (updates.project_id !== undefined) payload.project_id = updates.project_id
+      if (fullUpdates.priority !== undefined) payload.priority = fullUpdates.priority
+      if (fullUpdates.progress !== undefined) payload.progress = fullUpdates.progress
+      if (fullUpdates.assigned_users !== undefined) payload.assigned_users = fullUpdates.assigned_users
+      if (fullUpdates.due_date !== undefined) payload.due_date = fullUpdates.due_date
+      if (fullUpdates.actual_completion_date !== undefined) payload.actual_completion_date = fullUpdates.actual_completion_date
+      if (fullUpdates.comments !== undefined) payload.comments = fullUpdates.comments
+      if (fullUpdates.is_blocked !== undefined) payload.is_blocked = fullUpdates.is_blocked
+      if (fullUpdates.blocker_reason !== undefined) payload.blocker_reason = fullUpdates.blocker_reason
+      if (fullUpdates.project_id !== undefined) payload.project_id = fullUpdates.project_id
 
-      await supabase
+      const { error } = await supabase
         .from('elara_tasks')
         .update(payload)
         .eq('id', id)
+
+      if (error) {
+        let retry = false
+        if (error.message?.includes('actual_completion_date')) {
+          delete payload.actual_completion_date
+          retry = true
+        }
+        if (error.message?.includes('comments')) {
+          delete payload.comments
+          retry = true
+        }
+        if (retry) {
+          await supabase.from('elara_tasks').update(payload).eq('id', id)
+        }
+      }
     } catch (e) {
       console.error('Supabase task update error:', e)
     }
@@ -291,8 +358,9 @@ export function useTasks(projectId?: string) {
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: ['tasks', projectId] })
       const prev = queryClient.getQueryData<Task[]>(['tasks', projectId])
+      const actual_completion_date = status === 'completed' ? new Date().toISOString() : null
       queryClient.setQueryData<Task[]>(['tasks', projectId], (old) =>
-        old?.map((t) => (t.id === id ? { ...t, status } : t)) ?? []
+        old?.map((t) => (t.id === id ? { ...t, status, is_blocked: status === 'blocker', actual_completion_date } : t)) ?? []
       )
       return { prev }
     },
@@ -308,8 +376,19 @@ export function useTasks(projectId?: string) {
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: ['tasks', projectId] })
       const prev = queryClient.getQueryData<Task[]>(['tasks', projectId])
+      const calculatedActualDate =
+        updates.status === 'completed' && updates.actual_completion_date === undefined
+          ? new Date().toISOString()
+          : updates.status && updates.status !== 'completed' && updates.actual_completion_date === undefined
+          ? null
+          : updates.actual_completion_date
+
+      const mergedUpdates = {
+        ...updates,
+        ...(calculatedActualDate !== undefined ? { actual_completion_date: calculatedActualDate } : {}),
+      }
       queryClient.setQueryData<Task[]>(['tasks', projectId], (old) =>
-        old?.map((t) => (t.id === id ? { ...t, ...updates } : t)) ?? []
+        old?.map((t) => (t.id === id ? { ...t, ...mergedUpdates } : t)) ?? []
       )
       return { prev }
     },

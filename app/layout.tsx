@@ -5,6 +5,11 @@ import { Providers } from './providers'
 export const metadata: Metadata = {
   title: 'TaskFlow — Project Management',
   description: 'Premium SaaS task management dashboard',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/favicon.ico',
+    apple: '/icon.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

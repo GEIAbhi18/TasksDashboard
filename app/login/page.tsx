@@ -4,15 +4,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/lib/auth-store'
 import toast from 'react-hot-toast'
-import { Eye, EyeOff, Zap, CheckCircle2, ArrowRight, UserCheck } from 'lucide-react'
-
-const QUICK_ACCOUNTS = [
-  { name: 'Developer', email: 'name@goodearthinfra', role: 'Developer' },
-  { name: 'Kanav', email: 'kanav@goodearthinfra.com', role: 'Director' },
-  { name: 'Rachit', email: 'rachit@goodearthinfra.com', role: 'Construction & Design' },
-  { name: 'Bhirmala', email: 'bhirmala@goodearthinfra.com', role: 'Approvals & Compliance' },
-  { name: 'Bhagwan Dass', email: 'bhagwandass@goodearthinfra.com', role: 'Finance & Procurement' },
-]
+import { Eye, EyeOff, Zap, CheckCircle2, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -41,7 +33,7 @@ export default function LoginPage() {
     const e: typeof errors = {}
     const trimmedEmail = email.trim()
     const trimmedPassword = password.trim()
-    if (!trimmedEmail) e.email = 'Email is required'
+    if (!trimmedEmail) e.email = 'Email or username is required'
     if (!trimmedPassword) e.password = 'Password is required'
     setErrors(e)
     return Object.keys(e).length === 0
@@ -60,13 +52,6 @@ export default function LoginPage() {
     } else {
       toast.error(result.error || 'Invalid email or password')
     }
-  }
-
-  const fillAccount = (accEmail: string) => {
-    setEmail(accEmail)
-    setPassword('simple')
-    setErrors({})
-    toast.success(`Loaded credentials for ${accEmail}`, { icon: '🔑' })
   }
 
   return (
@@ -211,32 +196,6 @@ export default function LoginPage() {
               )}
             </motion.button>
           </form>
-
-          {/* Quick Demo Accounts */}
-          <div className="mt-8 pt-6 border-t border-surface-2">
-            <div className="flex items-center gap-2 mb-3">
-              <UserCheck className="w-4 h-4 text-brand-600" />
-              <p className="text-xs font-bold text-ink uppercase tracking-wider">Quick Team Login (Password: simple)</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              {QUICK_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.name}
-                  type="button"
-                  onClick={() => fillAccount(acc.email)}
-                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-surface-2 bg-surface-1 hover:bg-brand-50 hover:border-brand-200 text-left transition-all group cursor-pointer"
-                >
-                  <div>
-                    <p className="text-xs font-bold text-ink group-hover:text-brand-700">{acc.name}</p>
-                    <p className="text-[11px] text-ink-faint">{acc.email}</p>
-                  </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white border border-surface-2 text-ink-muted group-hover:border-brand-200 group-hover:text-brand-600">
-                    {acc.role}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
         </motion.div>
       </div>
     </div>

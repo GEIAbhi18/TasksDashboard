@@ -2,10 +2,11 @@
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/lib/auth-store'
 import { getInitials, cn } from '@/lib/utils'
-import { Bell, Search, Moon, Sun, Menu, CheckCheck } from 'lucide-react'
+import { Bell, Search, Moon, Sun, Menu, CheckCheck, LogOut, Settings } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 interface TopbarProps {
   title?: string
@@ -14,9 +15,22 @@ interface TopbarProps {
 }
 
 export function Topbar({ title = 'Dashboard', subtitle, onMenuClick }: TopbarProps) {
+  const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const [profileOpen, setProfileOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [hasUnread, setHasUnread] = useState(true)
+
+  const handleLogout = () => {
+    logout()
+    toast.success('Signed out')
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    } else {
+      router.push('/login')
+    }
+  }
   const [notifications, setNotifications] = useState([
     { id: '1', text: 'Task "Review sample drawing" updated', time: '2m ago', dot: 'bg-blue-500', read: false },
     { id: '2', text: 'Kanav assigned "Add sample lead" to you', time: '18m ago', dot: 'bg-emerald-500', read: false },
@@ -126,15 +140,70 @@ export function Topbar({ title = 'Dashboard', subtitle, onMenuClick }: TopbarPro
           )}
         </div>
 
-        {/* User avatar */}
-        <div className="flex items-center gap-2.5 pl-2 border-l border-surface-2">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-ink leading-none">{user?.name}</p>
-            <p className="text-xs text-ink-faint mt-0.5">{user?.role}</p>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            {user ? getInitials(user.name) : '?'}
-          </div>
+        {/* User profile dropdown */}
+        <div className="relative pl-2 border-l border-surface-2">
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-surface-1 transition-all cursor-pointer text-left"
+            title="User menu"
+          >
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold text-ink leading-none">{user?.name}</p>
+              <p className="text-xs text-ink-faint mt-0.5">{user?.role}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-xs">
+              {user ? getInitials(user.name) : '?'}
+            </div>
+          </button>
+
+          {profileOpen && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setProfileOpen(false)} 
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute right-0 top-12 w-64 bg-white border border-surface-2 rounded-2xl shadow-modal p-3 z-50 space-y-2"
+              >
+                <div className="px-2.5 py-2 border-b border-surface-1">
+                  <p className="text-sm font-bold text-ink">{user?.name}</p>
+                  <p className="text-xs text-ink-muted truncate">{user?.email}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded-md">
+                      {user?.role}
+                    </span>
+                    {user?.department && (
+                      <span className="text-[10px] text-ink-faint bg-surface-1 px-1.5 py-0.5 rounded">
+                        {user.department}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <a
+                    href="/settings"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-ink-muted hover:text-ink hover:bg-surface-1 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-ink-faint" />
+                    <span>Settings</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer text-left"
+                  >
+                    <LogOut className="w-4 h-4 text-red-500" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
         </div>
       </div>
     </header>

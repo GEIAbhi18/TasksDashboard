@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS public.elara_tasks (
     progress integer NOT NULL DEFAULT 0,
     assigned_users text[] DEFAULT '{}',
     due_date timestamptz,
+    actual_completion_date timestamptz DEFAULT NULL,
+    comments jsonb DEFAULT '[]'::jsonb,
     is_blocked boolean NOT NULL DEFAULT false,
     blocker_reason text,
     created_at timestamptz NOT NULL DEFAULT NOW(),
@@ -103,7 +105,7 @@ INSERT INTO public.elara_projects (id, name, department, description, color, sta
 VALUES
     (
         'elara-sales-crm',
-        'Elara Home – Sales & CRM Test Project',
+        'Sales & CRM Project',
         'Sales & CRM',
         'Leads, follow-ups, site visits, bookings, payment milestones, documentation.',
         '#3b82f6',
@@ -112,7 +114,7 @@ VALUES
     ),
     (
         'elara-construction-design',
-        'Elara Home – Construction & Design Test Project',
+        'Construction & Design Project',
         'Construction & Design',
         'Site execution, drawings, consultant decisions, contractor actions, quality and safety issues.',
         '#10b981',
@@ -121,7 +123,7 @@ VALUES
     ),
     (
         'elara-approvals-compliance',
-        'Elara Home – Approvals & Compliance Test Project',
+        'Approvals & Compliance Project',
         'Approvals & Compliance',
         'TCP/RERA matters, government approvals, licences, statutory submissions and renewals.',
         '#8b5cf6',
@@ -130,7 +132,7 @@ VALUES
     ),
     (
         'elara-finance-procurement',
-        'Elara Home – Finance & Procurement Test Project',
+        'Finance & Procurement Project',
         'Finance & Procurement',
         'Budgets, purchase orders, vendor payments, quotations, billing and cost approvals.',
         '#f59e0b',
@@ -139,7 +141,7 @@ VALUES
     ),
     (
         'elara-marketing-cx',
-        'Elara Home – Marketing & Customer Experience Test Project',
+        'Marketing & Customer Experience Project',
         'Marketing & Customer Experience',
         'Campaigns, brochures, events, website updates, buyer communication and handover preparation.',
         '#ec4899',
@@ -148,7 +150,7 @@ VALUES
     ),
     (
         'elara-project-admin',
-        'Elara Home – Project Administration Test Project',
+        'Project Administration Project',
         'Project Administration',
         'Hiring, manpower, meetings, reporting, travel, office/site requirements and general coordination.',
         '#06b6d4',
@@ -223,53 +225,10 @@ ON CONFLICT (id) DO UPDATE SET
     phone = EXCLUDED.phone;
 
 -- ==========================================================
--- 7. SEED DUMMY TASKS (ACROSS ALL 5 STATUSES)
+-- -- ==========================================================
+-- 7. CLEAN SLATE FOR TASKS (READY FOR REAL DATA)
 -- ==========================================================
-INSERT INTO public.elara_tasks (
-    id, project_id, title, description, status, priority, progress,
-    assigned_users, due_date, is_blocked, blocker_reason, created_at
-)
-VALUES
-    -- 1. Sales & CRM
-    ('task-sales-1', 'elara-sales-crm', 'Add sample lead', 'Capture inquiry from prospective home buyer for Phase 1.', 'pending', 'medium', 0, ARRAY['Kanav', 'Rachit'], NOW() + INTERVAL '4 days', false, NULL, NOW() - INTERVAL '3 days'),
-    ('task-sales-2', 'elara-sales-crm', 'Schedule sample site visit', 'Coordinate site tour for registered client this weekend.', 'in_progress', 'high', 50, ARRAY['Rachit'], NOW() + INTERVAL '2 days', false, NULL, NOW() - INTERVAL '2 days'),
-    ('task-sales-3', 'elara-sales-crm', 'Update sample booking', 'Milestone payment verified and booking receipt generated.', 'completed', 'low', 100, ARRAY['Kanav'], NOW() - INTERVAL '1 day', false, NULL, NOW() - INTERVAL '5 days'),
-
-    -- 2. Construction & Design
-    ('task-const-1', 'elara-construction-design', 'Review sample drawing', 'Architectural structural drawings review for foundation approval.', 'in_progress', 'high', 60, ARRAY['Rachit', 'Bhirmala'], NOW() + INTERVAL '3 days', false, NULL, NOW() - INTERVAL '4 days'),
-    ('task-const-2', 'elara-construction-design', 'Check site execution', 'Conduct weekly quality audit on foundation pouring.', 'pending', 'medium', 20, ARRAY['Rachit'], NOW() + INTERVAL '5 days', false, NULL, NOW() - INTERVAL '2 days'),
-    ('task-const-3', 'elara-construction-design', 'Resolve sample quality issue', 'Vendor material delivery delayed by 2 days. Expedited shipment requested.', 'delay', 'high', 30, ARRAY['Bhirmala'], NOW() + INTERVAL '1 day', false, NULL, NOW() - INTERVAL '3 days'),
-
-    -- 3. Approvals & Compliance
-    ('task-appr-1', 'elara-approvals-compliance', 'Review sample approval', 'Check municipal water and power sanction compliance.', 'pending', 'medium', 0, ARRAY['Kanav'], NOW() + INTERVAL '6 days', false, NULL, NOW() - INTERVAL '3 days'),
-    ('task-appr-2', 'elara-approvals-compliance', 'Prepare sample submission', 'Compile TCP/RERA statutory compliance documentation dossier.', 'in_progress', 'high', 40, ARRAY['Bhirmala'], NOW() + INTERVAL '2 days', false, NULL, NOW() - INTERVAL '2 days'),
-    ('task-appr-3', 'elara-approvals-compliance', 'Track sample compliance item', 'Fire safety certificate renewed and filed with regulatory authority.', 'completed', 'low', 100, ARRAY['Kanav', 'Bhirmala'], NOW() - INTERVAL '1 day', false, NULL, NOW() - INTERVAL '6 days'),
-
-    -- 4. Finance & Procurement
-    ('task-fin-1', 'elara-finance-procurement', 'Review sample quotation', 'Evaluate competitive quotes for structural steel procurement.', 'in_progress', 'medium', 75, ARRAY['Bhagwan Dass'], NOW() + INTERVAL '2 days', false, NULL, NOW() - INTERVAL '3 days'),
-    ('task-fin-2', 'elara-finance-procurement', 'Create sample purchase order', 'Issue PO #GEI-2026-088 for electrical conduits and cabling.', 'pending', 'high', 0, ARRAY['Bhagwan Dass'], NOW() + INTERVAL '3 days', false, NULL, NOW() - INTERVAL '1 day'),
-    ('task-fin-3', 'elara-finance-procurement', 'Verify sample vendor payment', 'Vendor invoice audited and payment release cleared by accounts.', 'completed', 'low', 100, ARRAY['Bhagwan Dass'], NOW() - INTERVAL '2 days', false, NULL, NOW() - INTERVAL '5 days'),
-
-    -- 5. Marketing & Customer Experience
-    ('task-mkt-1', 'elara-marketing-cx', 'Prepare sample campaign', 'Plan festive promotional launch campaign for Phase 2 villas.', 'pending', 'medium', 10, ARRAY['Rachit'], NOW() + INTERVAL '5 days', false, NULL, NOW() - INTERVAL '4 days'),
-    ('task-mkt-2', 'elara-marketing-cx', 'Update sample brochure', 'Refresh villa floorplans, 3D renderings, and specifications list.', 'in_progress', 'low', 50, ARRAY['Bhagwan Dass'], NOW() + INTERVAL '3 days', false, NULL, NOW() - INTERVAL '2 days'),
-    ('task-mkt-3', 'elara-marketing-cx', 'Prepare sample buyer communication', 'Quarterly construction progress newsletter dispatched to buyers.', 'completed', 'high', 100, ARRAY['Rachit', 'Bhagwan Dass'], NOW() - INTERVAL '1 day', false, NULL, NOW() - INTERVAL '6 days'),
-
-    -- 6. Project Administration
-    ('task-adm-1', 'elara-project-admin', 'Schedule sample meeting', 'Coordinate bi-weekly cross-departmental alignment sync.', 'pending', 'medium', 0, ARRAY['Developer'], NOW() + INTERVAL '1 day', false, NULL, NOW() - INTERVAL '3 days'),
-    ('task-adm-2', 'elara-project-admin', 'Prepare sample report', 'Consolidate monthly milestone progress and budget variance overview.', 'in_progress', 'high', 65, ARRAY['Kanav', 'Developer'], NOW() + INTERVAL '2 days', false, NULL, NOW() - INTERVAL '2 days'),
-    ('task-adm-3', 'elara-project-admin', 'Coordinate sample manpower requirement', 'Staffing for site surveying and soil testing team awaiting clearance.', 'blocker', 'high', 20, ARRAY['Developer'], NOW() + INTERVAL '1 day', true, 'Awaiting site contractor labor mobilization clearance.', NOW() - INTERVAL '1 day')
-ON CONFLICT (id) DO UPDATE SET
-    title = EXCLUDED.title,
-    description = EXCLUDED.description,
-    status = EXCLUDED.status,
-    priority = EXCLUDED.priority,
-    progress = EXCLUDED.progress,
-    assigned_users = EXCLUDED.assigned_users,
-    due_date = EXCLUDED.due_date,
-    is_blocked = EXCLUDED.is_blocked,
-    blocker_reason = EXCLUDED.blocker_reason,
-    updated_at = NOW();
+-- Tasks will be created directly by users from the dashboard.
 
 COMMIT;
 

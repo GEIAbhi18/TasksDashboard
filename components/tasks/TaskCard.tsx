@@ -4,7 +4,7 @@ import { Task } from '@/types'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { AvatarGroup } from '@/components/ui/Avatar'
 import { formatDate, getProjectColor, cn } from '@/lib/utils'
-import { Calendar, Flag, GripVertical } from 'lucide-react'
+import { Calendar, Flag, GripVertical, MessageSquare } from 'lucide-react'
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: 'text-red-500',
@@ -102,11 +102,20 @@ export function TaskCard({ task, projectName, onClick, isDragging, dragHandlePro
           <div className="flex items-center justify-between">
             <AvatarGroup names={task.assigned_users} max={3} size="xs" />
             <div className="flex items-center gap-2">
+              {task.comments && task.comments.length > 0 && (
+                <div
+                  className="flex items-center gap-1 text-[10px] text-ink-muted font-medium bg-surface-1 px-1.5 py-0.5 rounded-md border border-surface-2"
+                  title={`${task.comments.length} comment${task.comments.length > 1 ? 's' : ''}`}
+                >
+                  <MessageSquare className="w-2.5 h-2.5 text-brand-600" />
+                  <span>{task.comments.length}</span>
+                </div>
+              )}
               {task.priority && (
                 <Flag className={cn('w-3 h-3', PRIORITY_COLORS[task.priority])} />
               )}
               {task.due_date && (
-                <div className="flex items-center gap-1 text-[10px] text-ink-faint">
+                <div className="flex items-center gap-1 text-[10px] text-ink-faint" title={`Expected Completion Date: ${formatDate(task.due_date)}`}>
                   <Calendar className="w-3 h-3" />
                   {formatDate(task.due_date)}
                 </div>

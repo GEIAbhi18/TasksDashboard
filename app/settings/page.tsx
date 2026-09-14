@@ -6,12 +6,13 @@ import { useAuthStore } from '@/lib/auth-store'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { getInitials } from '@/lib/utils'
-import { Camera, Save, User, Briefcase, Mail, ShieldCheck, Loader2 } from 'lucide-react'
+import { Camera, Save, User, Briefcase, Mail, ShieldCheck, Loader2, LogOut } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
   const updateUser = useAuthStore((s) => s.updateUser)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const [mounted, setMounted] = useState(false)
@@ -19,6 +20,7 @@ export default function SettingsPage() {
   const [name, setName] = useState('')
   const [department, setDepartment] = useState('')
   const [saving, setSaving] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -69,10 +71,19 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Sidebar selectedProjectId={null} onSelectProject={() => {}} />
+      <Sidebar
+        selectedProjectId={null}
+        onSelectProject={() => {}}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <div className="ml-[260px]">
-        <Topbar title="Settings" subtitle="Manage your profile and preferences" />
+      <div className="lg:ml-[260px] transition-all duration-300">
+        <Topbar
+          title="Settings"
+          subtitle="Manage your profile and preferences"
+          onMenuClick={() => setSidebarOpen(true)}
+        />
 
         <main className="pt-[60px] p-8 max-w-2xl">
           <motion.div
@@ -171,16 +182,50 @@ export default function SettingsPage() {
             </div>
 
             {/* Danger zone */}
-            <div className="bg-white rounded-3xl border border-red-100 shadow-card p-6">
-              <h2 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-4">Danger zone</h2>
-              <div className="flex items-center justify-between gap-4 p-4 bg-red-50 rounded-2xl border border-red-100">
+            <div className="bg-white rounded-3xl border border-red-100 shadow-card p-6 space-y-3">
+              <h2 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-2">Danger zone</h2>
+              
+              <div className="flex items-center justify-between gap-4 p-4 bg-red-50/60 rounded-2xl border border-red-100">
                 <div>
-                  <p className="text-sm font-semibold text-ink">Sign out of all devices</p>
-                  <p className="text-xs text-ink-muted mt-0.5">This will end all active sessions.</p>
+                  <p className="text-sm font-semibold text-ink">Sign out of TaskFlow</p>
+                  <p className="text-xs text-ink-muted mt-0.5">End your current active session on this device.</p>
                 </div>
                 <button
-                  onClick={() => toast('Feature coming soon', { icon: '⚠️' })}
-                  className="px-4 py-2 bg-white border border-red-200 text-red-600 text-xs font-semibold rounded-xl hover:bg-red-50 transition-colors flex-shrink-0"
+                  type="button"
+                  onClick={() => {
+                    logout()
+                    toast.success('Signed out')
+                    if (typeof window !== 'undefined') {
+                      window.location.href = '/login'
+                    } else {
+                      router.push('/login')
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex-shrink-0 cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign out</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 p-4 bg-surface-1 rounded-2xl border border-surface-2">
+                <div>
+                  <p className="text-sm font-semibold text-ink">Sign out of all devices</p>
+                  <p className="text-xs text-ink-muted mt-0.5">Clears stored session and redirects to login.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout()
+                    toast.success('Signed out of all devices')
+                    if (typeof window !== 'undefined') {
+                      localStorage.clear()
+                      window.location.href = '/login'
+                    } else {
+                      router.push('/login')
+                    }
+                  }}
+                  className="px-4 py-2 bg-white border border-surface-2 text-ink-muted hover:text-red-600 text-xs font-semibold rounded-xl hover:bg-red-50 transition-colors flex-shrink-0 cursor-pointer"
                 >
                   Sign out all
                 </button>

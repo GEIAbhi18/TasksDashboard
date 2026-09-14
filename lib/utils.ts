@@ -59,10 +59,31 @@ export function getInitials(name: string): string {
 }
 
 export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
+  if (!date) return ''
+  try {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    })
+  } catch {
+    return date
+  }
+}
+
+export function formatDateTime(date: string): string {
+  if (!date) return ''
+  try {
+    const d = new Date(date)
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  } catch {
+    return date
+  }
 }
 
 export const MOCK_ASSIGNED = ['Asif', 'Kanav', 'Priya', 'Rahul', 'Sara']
