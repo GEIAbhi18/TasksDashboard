@@ -13,18 +13,38 @@ export default function SettingsPage() {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
   const updateUser = useAuthStore((s) => s.updateUser)
+  const hasHydrated = useAuthStore((s) => s._hasHydrated)
+  const [mounted, setMounted] = useState(false)
 
   const [name, setName] = useState('')
   const [department, setDepartment] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!user) { router.replace('/login'); return }
-    setName(user.name)
-    setDepartment(user.department || '')
-  }, [user, router])
+    setMounted(true)
+  }, [])
 
-  if (!user) return null
+  useEffect(() => {
+    if (mounted && hasHydrated && !user) {
+      router.replace('/login')
+      return
+    }
+    if (user) {
+      setName(user.name)
+      setDepartment(user.department || '')
+    }
+  }, [mounted, hasHydrated, user, router])
+
+  if (!mounted || !user) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+          <p className="text-xs font-medium text-ink-muted">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -12,20 +12,37 @@ import { useProjects } from '@/hooks/useProjects'
 export default function DashboardPage() {
   const router = useRouter()
   const user = useAuthStore((s) => s.user)
+  const hasHydrated = useAuthStore((s) => s._hasHydrated)
+  const [mounted, setMounted] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: projects = [] } = useProjects()
 
-  // Auth guard
   useEffect(() => {
-    if (!user) router.replace('/login')
-  }, [user, router])
+    setMounted(true)
+  }, [])
 
-  if (!user) return null
+  // Auth guard: only redirect after mounting and hydration check
+  useEffect(() => {
+    if (mounted && hasHydrated && !user) {
+      router.replace('/login')
+    }
+  }, [mounted, hasHydrated, user, router])
+
+  if (!mounted || !user) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+          <p className="text-xs font-medium text-ink-muted">Loading TaskFlow...</p>
+        </div>
+      </div>
+    )
+  }
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId)
   const topbarTitle = selectedProject ? selectedProject.name : 'All Tasks'
-  const topbarSubtitle = `Welcome back, ${user.name} · ${user.role}`
+  const topbarSubtitle = `Welcome back, ${user.name} · ${user.role}${user.team ? ` · ${user.team}` : ''}`
 
   return (
     <div className="min-h-screen bg-surface">

@@ -7,9 +7,10 @@ import { useProjects } from '@/hooks/useProjects'
 import { useAuthStore } from '@/lib/auth-store'
 import { KanbanColumn } from './KanbanColumn'
 import { TaskModal } from './TaskModal'
+import { CreateTaskModal } from './CreateTaskModal'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { STATUS_CONFIG } from '@/lib/utils'
-import { LayoutGrid, List, Filter, FolderOpen } from 'lucide-react'
+import { LayoutGrid, List, Filter, FolderOpen, Plus } from 'lucide-react'
 import { TaskCard } from './TaskCard'
 import toast from 'react-hot-toast'
 
@@ -24,10 +25,11 @@ type ViewMode = 'kanban' | 'list'
 export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
   const user = useAuthStore((s) => s.user)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [createTaskStatus, setCreateTaskStatus] = useState<TaskStatus | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('kanban')
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all')
 
-  const { data: tasks = [], isLoading, statusMutation } = useTasks(selectedProjectId ?? undefined)
+  const { data: tasks = [], isLoading, statusMutation, createMutation, deleteMutation } = useTasks(selectedProjectId ?? undefined)
   const { data: projects = [] } = useProjects()
 
   const projectNames = Object.fromEntries(projects.map((p) => [p.id, p.name]))
@@ -38,6 +40,11 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
   const handleUpdateStatus = async (id: string, status: TaskStatus) => {
     await statusMutation.mutateAsync({ id, status })
     toast.success(`Status updated to "${STATUS_CONFIG[status].label}"`)
+  }
+
+  const handleDeleteTask = async (id: string) => {
+    await deleteMutation.mutateAsync(id)
+    toast.success('Task deleted successfully')
   }
 
   const handleDrop = (taskId: string, newStatus: TaskStatus) => {
@@ -62,6 +69,17 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
 
         {/* Controls */}
         <div className="flex items-center gap-2">
+          {/* Add task button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setCreateTaskStatus(statusFilter === 'all' ? 'pending' : statusFilter)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Task</span>
+          </motion.button>
+
           {/* Status filter */}
           <div className="relative">
             <select
@@ -118,9 +136,16 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
             <FolderOpen className="w-7 h-7 text-ink-faint" />
           </div>
           <h3 className="font-bold text-ink mb-1">No tasks yet</h3>
-          <p className="text-sm text-ink-muted text-center max-w-xs">
-            {selectedProject ? `No tasks in "${selectedProject.name}"` : 'Select a project or tasks will appear here'}
+          <p className="text-sm text-ink-muted text-center max-w-xs mb-4">
+            {selectedProject ? `No tasks in "${selectedProject.name}"` : 'Select a project or create a new task'}
           </p>
+          <button
+            onClick={() => setCreateTaskStatus('pending')}
+            className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create First Task</span>
+          </button>
         </motion.div>
       )}
 
@@ -135,6 +160,7 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
               projectNames={projectNames}
               onTaskClick={setSelectedTask}
               onDropTask={handleDrop}
+              onAddTask={(s) => setCreateTaskStatus(s)}
             />
           ))}
         </div>
@@ -165,7 +191,7 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
         </motion.div>
       )}
 
-      {/* Task modal */}
+      {/* Task detail modal */}
       <AnimatePresence>
         {selectedTask && (
           <TaskModal
@@ -173,7 +199,23 @@ export function TaskPanel({ selectedProjectId }: TaskPanelProps) {
             projectName={projectNames[selectedTask.project_id]}
             onClose={() => setSelectedTask(null)}
             onUpdateStatus={handleUpdateStatus}
-            isManager={user?.role === 'Manager'}
+            onDeleteTask={handleDeleteTask}
+            isManager={user?.role === 'Manager' || user?.role === 'Director' || user?.role === 'Developer'}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Create task modal */}
+      <AnimatePresence>
+        {createTaskStatus && (
+          <CreateTaskModal
+            initialStatus={createTaskStatus}
+            projects={projects}
+            defaultProjectId={selectedProjectId}
+            onClose={() => setCreateTaskStatus(null)}
+            onCreateTask={async (newTask) => {
+              await createMutation.mutateAsync(newTask)
+            }}
           />
         )}
       </AnimatePresence>

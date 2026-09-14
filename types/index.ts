@@ -1,4 +1,4 @@
-export type UserRole = 'Employee' | 'Manager'
+export type UserRole = 'Director' | 'Team Member' | 'Developer' | 'Employee' | 'Manager'
 
 export interface User {
   id: string
@@ -6,6 +6,8 @@ export interface User {
   name: string
   role: UserRole
   department?: string
+  team?: string
+  phone?: string
   avatar?: string
 }
 
@@ -35,4 +37,15 @@ export interface Project {
   description?: string
   color?: string
   created_at?: string
+  team_id?: string
+  team_name?: string
+  department?: string
 }
+
+export interface Department {
+  id: string
+  name: string
+  description: string
+  team_name: string
+}
+

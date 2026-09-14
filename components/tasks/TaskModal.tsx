@@ -5,19 +5,20 @@ import { Task, TaskStatus } from '@/types'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { AvatarGroup } from '@/components/ui/Avatar'
 import { STATUS_CONFIG, formatDate, cn } from '@/lib/utils'
-import { X, Calendar, Flag, AlignLeft, Loader2, CheckCircle2 } from 'lucide-react'
+import { X, Calendar, Flag, AlignLeft, Loader2, CheckCircle2, Trash2 } from 'lucide-react'
 
 interface TaskModalProps {
   task: Task | null
   projectName?: string
   onClose: () => void
   onUpdateStatus: (id: string, status: TaskStatus) => Promise<void>
+  onDeleteTask?: (id: string) => Promise<void>
   isManager: boolean
 }
 
 const ALL_STATUSES: TaskStatus[] = ['pending', 'in_progress', 'delay', 'blocker', 'completed']
 
-export function TaskModal({ task, projectName, onClose, onUpdateStatus, isManager }: TaskModalProps) {
+export function TaskModal({ task, projectName, onClose, onUpdateStatus, onDeleteTask, isManager }: TaskModalProps) {
   const [saving, setSaving] = useState(false)
   const [localStatus, setLocalStatus] = useState<TaskStatus | null>(null)
 
@@ -170,12 +171,30 @@ export function TaskModal({ task, projectName, onClose, onUpdateStatus, isManage
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-surface-1 flex justify-between items-center">
-            <p className="text-[11px] text-ink-faint">Created {formatDate(task.created_at)}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-[11px] text-ink-faint">Created {formatDate(task.created_at)}</p>
+              {onDeleteTask && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
+                      await onDeleteTask(task.id)
+                      onClose()
+                    }
+                  }}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                  title="Delete task from Supabase"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete</span>
+                </button>
+              )}
+            </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={onClose}
-              className="px-4 py-2 bg-ink text-white text-sm font-semibold rounded-xl hover:bg-ink-soft transition-colors"
+              className="px-4 py-2 bg-ink text-white text-sm font-semibold rounded-xl hover:bg-ink-soft transition-colors cursor-pointer"
             >
               Done
             </motion.button>

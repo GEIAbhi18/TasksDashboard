@@ -4,27 +4,78 @@ import { User } from '@/types'
 
 const HARDCODED_USERS: (User & { password: string })[] = [
   {
-    id: 'user-asif',
-    email: 'asif@company.com',
-    password: '123456',
-    name: 'Asif',
-    role: 'Employee',
-    department: 'Engineering',
-    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=asif&backgroundColor=b6e3f4',
+    id: 'user-developer',
+    email: 'name@goodearthinfra',
+    password: 'simple',
+    name: 'Developer',
+    role: 'Developer',
+    team: 'Elara Home',
+    department: 'Project Administration',
+    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=developer&backgroundColor=b6e3f4',
   },
   {
-    id: 'user-kanav',
-    email: 'kanav@company.com',
-    password: '123456',
+    id: '1e4a4d9e-ced8-48f0-afd3-494478f05131',
+    email: 'kanav@goodearthinfra.com',
+    password: 'simple',
     name: 'Kanav',
-    role: 'Manager',
-    department: 'Product',
+    role: 'Director',
+    team: 'Elara Home',
+    department: 'Sales & CRM',
     avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=kanav&backgroundColor=d1d4f9',
+  },
+  {
+    id: 'user-rachit',
+    email: 'rachit@goodearthinfra.com',
+    password: 'simple',
+    name: 'Rachit',
+    role: 'Team Member',
+    team: 'Elara Home',
+    department: 'Construction & Design',
+    phone: '919867272041',
+    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=rachit&backgroundColor=ffd5dc',
+  },
+  {
+    id: 'user-bhirmala',
+    email: 'bhirmala@goodearthinfra.com',
+    password: 'simple',
+    name: 'Bhirmala',
+    role: 'Team Member',
+    team: 'Elara Home',
+    department: 'Approvals & Compliance',
+    phone: '918894577707',
+    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=bhirmala&backgroundColor=c0aede',
+  },
+  {
+    id: 'user-bhagwandass',
+    email: 'bhagwandass@goodearthinfra.com',
+    password: 'simple',
+    name: 'Bhagwan Dass',
+    role: 'Team Member',
+    team: 'Elara Home',
+    department: 'Finance & Procurement',
+    phone: '919816641892',
+    avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=bhagwandass&backgroundColor=ffdfba',
   },
 ]
 
+function getInitialUser(): User | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem('taskflow-auth')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed?.state?.user) {
+        return parsed.state.user
+      }
+    }
+  } catch {}
+  return null
+}
+
 interface AuthState {
   user: User | null
+  _hasHydrated: boolean
+  setHasHydrated: (state: boolean) => void
   login: (email: string, password: string) => { success: boolean; error?: string }
   logout: () => void
   updateUser: (data: Partial<User>) => void
@@ -33,7 +84,10 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: null,
+      user: getInitialUser(),
+      _hasHydrated: typeof window !== 'undefined',
+
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       login: (email, password) => {
         const found = HARDCODED_USERS.find(
@@ -45,7 +99,14 @@ export const useAuthStore = create<AuthState>()(
         return { success: true }
       },
 
-      logout: () => set({ user: null }),
+      logout: () => {
+        set({ user: null })
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('taskflow-auth')
+          } catch {}
+        }
+      },
 
       updateUser: (data) => {
         const current = get().user
@@ -53,6 +114,12 @@ export const useAuthStore = create<AuthState>()(
         set({ user: { ...current, ...data } })
       },
     }),
-    { name: 'taskflow-auth' }
+    {
+      name: 'taskflow-auth',
+      partialize: (state) => ({ user: state.user } as any),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
+    }
   )
 )

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/lib/auth-store'
@@ -8,7 +8,15 @@ import { Eye, EyeOff, Zap, CheckCircle2, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+  const user = useAuthStore((s) => s.user)
+  const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const login = useAuthStore((s) => s.login)
+
+  useEffect(() => {
+    if (hasHydrated && user) {
+      router.replace('/dashboard')
+    }
+  }, [hasHydrated, user, router])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,7 +27,7 @@ export default function LoginPage() {
   const validate = () => {
     const e: typeof errors = {}
     if (!email) e.email = 'Email is required'
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email'
+    else if (!/\S+@\S+/.test(email)) e.email = 'Enter a valid email'
     if (!password) e.password = 'Password is required'
     else if (password.length < 6) e.password = 'Minimum 6 characters'
     setErrors(e)
@@ -136,7 +144,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })) }}
-                placeholder="you@company.com"
+                placeholder="name@goodearthinfra"
                 className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none
                   ${errors.email ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-2 focus:ring-red-100' :
                     'border-surface-2 bg-surface-1 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:bg-white'}`}
