@@ -2,10 +2,16 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { User } from '@/types'
 
-const HARDCODED_USERS: (User & { password: string })[] = [
+export interface AuthUserWithCreds extends User {
+  password: string
+  aliases?: string[]
+}
+
+const HARDCODED_USERS: AuthUserWithCreds[] = [
   {
     id: 'user-developer',
     email: 'name@goodearthinfra',
+    aliases: ['developer@goodearthinfra.com', 'name@goodearthinfra.com', 'developer@goodearthinfra', 'developer'],
     password: 'simple',
     name: 'Developer',
     role: 'Developer',
@@ -16,6 +22,7 @@ const HARDCODED_USERS: (User & { password: string })[] = [
   {
     id: '1e4a4d9e-ced8-48f0-afd3-494478f05131',
     email: 'kanav@goodearthinfra.com',
+    aliases: ['kanav@goodearthinfra', 'kanav'],
     password: 'simple',
     name: 'Kanav',
     role: 'Director',
@@ -26,6 +33,7 @@ const HARDCODED_USERS: (User & { password: string })[] = [
   {
     id: 'user-rachit',
     email: 'rachit@goodearthinfra.com',
+    aliases: ['rachit@goodearthinfra', 'rachit'],
     password: 'simple',
     name: 'Rachit',
     role: 'Team Member',
@@ -37,6 +45,7 @@ const HARDCODED_USERS: (User & { password: string })[] = [
   {
     id: 'user-bhirmala',
     email: 'bhirmala@goodearthinfra.com',
+    aliases: ['bhirmala@goodearthinfra', 'bhirmala'],
     password: 'simple',
     name: 'Bhirmala',
     role: 'Team Member',
@@ -48,6 +57,7 @@ const HARDCODED_USERS: (User & { password: string })[] = [
   {
     id: 'user-bhagwandass',
     email: 'bhagwandass@goodearthinfra.com',
+    aliases: ['bhagwandass@goodearthinfra', 'bhagwandass', 'bhagwan dass'],
     password: 'simple',
     name: 'Bhagwan Dass',
     role: 'Team Member',
@@ -57,20 +67,6 @@ const HARDCODED_USERS: (User & { password: string })[] = [
     avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=bhagwandass&backgroundColor=ffdfba',
   },
 ]
-
-function getInitialUser(): User | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem('taskflow-auth')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed?.state?.user) {
-        return parsed.state.user
-      }
-    }
-  } catch {}
-  return null
-}
 
 interface AuthState {
   user: User | null
@@ -84,17 +80,28 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: getInitialUser(),
-      _hasHydrated: typeof window !== 'undefined',
+      user: null,
+      _hasHydrated: false,
 
       setHasHydrated: (state) => set({ _hasHydrated: state }),
 
-      login: (email, password) => {
-        const found = HARDCODED_USERS.find(
-          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        )
-        if (!found) return { success: false, error: 'Invalid email or password.' }
-        const { password: _pw, ...user } = found
+      login: (inputEmail, inputPassword) => {
+        const cleanEmail = (inputEmail || '').trim().toLowerCase()
+        const cleanPassword = (inputPassword || '').trim()
+
+        const found = HARDCODED_USERS.find((u) => {
+          const emailMatch =
+            u.email.toLowerCase() === cleanEmail ||
+            (u.aliases && u.aliases.some((a) => a.toLowerCase() === cleanEmail))
+          const pwMatch = u.password === cleanPassword
+          return emailMatch && pwMatch
+        })
+
+        if (!found) {
+          return { success: false, error: 'Invalid email or password.' }
+        }
+
+        const { password: _pw, aliases: _al, ...user } = found
         set({ user })
         return { success: true }
       },
